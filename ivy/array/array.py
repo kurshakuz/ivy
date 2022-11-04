@@ -18,7 +18,7 @@ from .general import ArrayWithGeneral
 from .gradients import ArrayWithGradients
 from .image import ArrayWithImage
 from .layers import ArrayWithLayers
-from .linalg import ArrayWithLinalg
+from .linear_algebra import ArrayWithLinalg
 from .losses import ArrayWithLosses
 from .manipulation import ArrayWithManipulation
 from .norms import ArrayWithNorms
