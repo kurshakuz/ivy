@@ -1,4 +1,4 @@
-import warnings
+import logging
 
 
 # local
@@ -47,7 +47,7 @@ def argmax(a, axis=None, out=None, keepdims=False):
 @to_ivy_arrays_and_back
 def argsort(a, axis=-1, kind="stable", order=None):
     if kind != "stable":
-        warnings.warn(
+        logging.warning(
             "'kind' argument to argsort is ignored; only 'stable' sorts "
             "are supported."
         )

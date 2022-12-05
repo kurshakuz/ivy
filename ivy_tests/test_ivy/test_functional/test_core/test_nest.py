@@ -2,7 +2,7 @@
 
 # global
 import copy
-import warnings
+import logging
 import pytest
 import numpy as np
 
@@ -342,7 +342,7 @@ def test_prune_nest_at_index(nest, index):
         ivy.prune_nest_at_index(nest, index)
         _pnai(nest_copy, index)
     except Exception:
-        warnings.warn("Nothing to delete.")
+        logging.warning("Nothing to delete.")
 
     assert nest == nest_copy
 
@@ -363,7 +363,7 @@ def test_prune_nest_at_indices(nest, indices):
         ivy.prune_nest_at_indices(nest, indices)
         pnais(nest_copy, indices)
     except Exception:
-        warnings.warn("Nothing to delete.")
+        logging.warning("Nothing to delete.")
 
     assert nest == nest_copy
 
