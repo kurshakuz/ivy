@@ -157,7 +157,7 @@ def broadcast(operand, sizes):
 
 @with_supported_dtypes(
     {
-        "0.4.16 and below": (
+        "0.4.17 and below": (
             "float16",
             "float32",
             "float64",
@@ -178,6 +178,11 @@ def ceil(x):
 @to_ivy_arrays_and_back
 def clamp(min, x, max):
     return ivy.clip(x, min, max)
+
+
+@to_ivy_arrays_and_back
+def complex(x, y):
+    return ivy.complex(x, y)
 
 
 @to_ivy_arrays_and_back
@@ -304,7 +309,7 @@ def cosh(x):
 
 
 @with_unsupported_dtypes(
-    {"0.4.16 and below": ("bfloat16", "float16", "bool", "complex64", "complex128")},
+    {"0.4.17 and below": ("bfloat16", "float16", "bool", "complex64", "complex128")},
     "jax",
 )
 @to_ivy_arrays_and_back
@@ -395,7 +400,7 @@ def erf(x):
 
 @with_supported_dtypes(
     {
-        "0.4.16 and below": (
+        "0.4.17 and below": (
             "float16",
             "float32",
             "float64",
@@ -455,7 +460,7 @@ def imag(x):
 
 
 @with_unsupported_dtypes(
-    {"0.4.16 and below": ("bool", "bfloat16")},
+    {"0.4.17 and below": ("bool", "bfloat16")},
     "jax",
 )
 @to_ivy_arrays_and_back
