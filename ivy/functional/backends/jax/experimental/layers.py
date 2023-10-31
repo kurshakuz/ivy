@@ -149,7 +149,7 @@ def general_pool(
         # if dtype is not set here, jax casts it to float64
         inputs = jnp.array(inputs, dtype=jnp.float32)
     if not ivy.is_array(init):
-        init = jnp.array(init, dtype=jnp.float32)
+        init = jnp.array(init, dtype=inputs.dtype)
     promoted_type = jnp.promote_types(inputs.dtype, init.dtype)
     inputs = inputs.astype(promoted_type)
     init = init.astype(promoted_type)
@@ -441,7 +441,7 @@ def avg_pool3d(
     return res
 
 
-@with_supported_dtypes({"0.4.17 and below": ("float32", "float64")}, backend_version)
+@with_supported_dtypes({"0.4.19 and below": ("float32", "float64")}, backend_version)
 def dct(
     x: JaxArray,
     /,
@@ -689,7 +689,8 @@ def interpolate(
         "area",
         "nearest_exact",
         "tf_area",
-        "bicubic_tensorflow" "bicubic",
+        "tf_bicubic",
+        "bicubic",
         "mitchellcubic",
         "lanczos3",
         "lanczos5",
@@ -697,29 +698,35 @@ def interpolate(
     ] = "linear",
     scale_factor: Optional[Union[Sequence[int], int]] = None,
     recompute_scale_factor: Optional[bool] = None,
-    align_corners: Optional[bool] = None,
+    align_corners: bool = False,
     antialias: bool = False,
     out: Optional[JaxArray] = None,
 ):
-    dims = len(x.shape) - 2
-    size = _get_size(scale_factor, size, dims, x.shape)
-    mode = (
-        "nearest"
-        if mode == "nearest-exact"
-        else "bicubic" if mode == "bicubic_tensorflow" else mode
-    )
+    input_size = ivy.shape(x)[2:]
+    dims = len(input_size)
+    size, _ = _get_size(scale_factor, size, dims, input_size)
+    if all(a == b for a, b in zip(size, input_size)):
+        ret = x
+    else:
+        mode = (
+            "nearest"
+            if mode == "nearest-exact"
+            else "bicubic" if mode == "tf_bicubic" else mode
+        )
 
-    size = [x.shape[0], *size, x.shape[1]]
-    x = jnp.transpose(x, (0, *range(2, dims + 2), 1))
-    return jnp.transpose(
-        jax.image.resize(x, shape=size, method=mode, antialias=antialias),
-        (0, dims + 1, *range(1, dims + 1)),
-    )
+        size = [x.shape[0], *size, x.shape[1]]
+        x = jnp.transpose(x, (0, *range(2, dims + 2), 1))
+        ret = jnp.transpose(
+            jax.image.resize(x, shape=size, method=mode, antialias=antialias),
+            (0, dims + 1, *range(1, dims + 1)),
+        )
+    if ivy.exists(out):
+        return ivy.inplace_update(out, ret)
+    return ret
 
 
-interpolate.partial_mixed_handler = lambda *args, mode="linear", scale_factor=None, recompute_scale_factor=None, align_corners=None, **kwargs: (  # noqa: E501
-    (align_corners is None or not align_corners)
-    and mode
+interpolate.partial_mixed_handler = (
+    lambda *args, mode="linear", recompute_scale_factor=None, align_corners=None, **kwargs: mode  # noqa: E501
     not in [
         "area",
         "nearest",
@@ -729,6 +736,8 @@ interpolate.partial_mixed_handler = lambda *args, mode="linear", scale_factor=No
         "gaussian",
         "bicubic",
     ]
+    and not align_corners
+    and recompute_scale_factor
 )
 
 
@@ -814,7 +823,7 @@ def ifftn(
 
 
 @with_unsupported_dtypes(
-    {"0.4.17 and below": ("bfloat16", "float16", "complex")}, backend_version
+    {"0.4.19 and below": ("bfloat16", "float16", "complex")}, backend_version
 )
 def embedding(
     weights: JaxArray,
@@ -840,7 +849,29 @@ def embedding(
     return embeddings
 
 
-@with_unsupported_dtypes({"0.4.17 and below": ("float16", "complex")}, backend_version)
+def rfft(
+    x: JaxArray,
+    /,
+    *,
+    n: Optional[int] = None,
+    axis: int = -1,
+    norm: Literal["backward", "ortho", "forward"] = "backward",
+    out: Optional[JaxArray] = None,
+) -> JaxArray:
+    x = x.real
+    if x.dtype == jnp.float16:
+        x = x.astype(jnp.float32)
+
+    ret = jnp.fft.rfft(x, n=n, axis=axis, norm=norm)
+
+    if x.dtype != jnp.float64:
+        ret = ret.astype(jnp.complex64)
+    if ivy.exists(out):
+        return ivy.inplace_update(out, ret)
+    return ret
+
+
+@with_unsupported_dtypes({"0.4.19 and below": ("float16", "complex")}, backend_version)
 def rfftn(
     x: JaxArray,
     s: Sequence[int] = None,
